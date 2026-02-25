@@ -9,48 +9,45 @@ CPU_LIMIT = float(os.environ.get("CPU_LIMIT", "80.0"))
 DISK_LIMIT = float(os.environ.get("DISK_LIMIT", "80.0"))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
 
+def send_discord_alert(alert_message: str):
+    payload = {
+            "username": "DevOps-Agent",
+            "content": alert_message
+    }
+    try:
+        requests.post(WEBHOOK_URL, json=payload, timeout=3)
+
+    except Exception as e:
+        print(f"Failed to send webhook: {e}")
+
+def evaluate_metric(metric_name: str, current_value: float, limit: float, tag: str, alert_file: str):
+    if current_value > limit:
+        with open(alert_file, "a") as f:
+            f.write(f"[{tag}] CRITICAL: {metric_name} usage exceeded {limit}% (Current: {round(current_value, 2)}%)\n")
+        
+        alert_message = f"CRITICAL: {metric_name} usage exceeded {limit}% (Current: {round(current_value, 2)}%)"
+        send_discord_alert(alert_message)
 
 def check_hardware():
     try:
-# Analizujemy główny system plików Linuxa, czyli root ("/")
-        total, used, free = shutil.disk_usage("/")
-        procent_dysku = (used / total) * 100
+        total, used = shutil.disk_usage("/")
+        disk_usage = (used / total) * 100
 
         ram = psutil.virtual_memory()
-        procent_ram = ram.percent
+        ram_usage = ram.percent
 
-# Mierzymy CPU. Musimy podać czas (interval) w sekundach, 
-# przez jaki badamy obciążenie, aby wynik był miarodajny.
-        procent_cpu = psutil.cpu_percent(interval=1)
+        cpu_usage = psutil.cpu_percent(interval=1)
 
-        base_path = "/home/daniel/road_to_devops/monitoring"
-        print("Sprawdzam system...")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        base_path = os.path.join(script_dir, "logs")
         os.makedirs(base_path, exist_ok=True)
 
-        print(f"[SYSTEM STATUS] CPU: {round(procent_cpu, 2)} | RAM: {round(procent_ram, 2)} | DYSK: {round(procent_dysku, 2)}")
-
-        alert_file = f"{base_path}/alerts.log"
-        znacznik = datetime.now().strftime("%Y%m%d_%H%M%S")
+        alert_file = os.path.join(base_path, "alerts.log")
+        tag = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-        if procent_ram > RAM_LIMIT:
-            with open(alert_file, "a") as f:
-                f.write(f"[{znacznik}] CRITICAL: RAM przekroczył: {RAM_LIMIT} % (aktualnie: {round(procent_ram, 2)}%)\n")
-            paczka_danych = {
-            "username": "DevOps-Agent",
-            "content": f"CRITICAL: RAM przekroczył: {RAM_LIMIT}% (aktualnie: {round(procent_ram, 2)}%)"
-            }
-            try:
-                # Wysyłamy paczkę i prosimy Pythona, żeby nie czekał dłużej niż 3 sekundy
-                requests.post(WEBHOOK_URL, json=paczka_danych, timeout=3)
-                print(">>> Wysłano alert na Webhooka! <<<")
-            except Exception as e:
-                print(f"Nie udało się wysłać Webhooka. Błąd: {e}")
-        if procent_cpu > CPU_LIMIT:
-            with open(alert_file, "a") as f:
-                f.write(f"[{znacznik}] CRITICAL: CPU przekroczył: {CPU_LIMIT} % (aktualnie: {round(procent_cpu, 2)}%)\n")
-        if procent_dysku > DISK_LIMIT:
-            with open(alert_file, "a") as f:
-                f.write(f"[{znacznik}] CRITICAL: DYSK przekroczył: {DISK_LIMIT} % (aktualnie: {round(procent_dysku, 2)}%)\n")        
+        evaluate_metric("RAM", ram_usage, RAM_LIMIT, tag, alert_file)
+        evaluate_metric("CPU", cpu_usage, CPU_LIMIT, tag, alert_file)
+        evaluate_metric("DISK", disk_usage, DISK_LIMIT, tag, alert_file)
 
     except Exception as e:
-        print(f"Błąd. Powód: {e}.")
+        print(f"Failed: {e}.")
