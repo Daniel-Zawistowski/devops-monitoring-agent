@@ -1,0 +1,24 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Zaloguj na serwer i wdróż aplikację
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          
+          script: |
+            cd ~/devops-monitoring-agent
+            git pull origin master
+            sudo DOCKER_API_VERSION=1.41 docker-compose down
+            sudo DOCKER_API_VERSION=1.41 docker-compose up -d --build
