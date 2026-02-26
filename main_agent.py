@@ -11,7 +11,7 @@ def run_agent():
     start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{start_time}] [INFO] System Monitor Agent started. Interval: {CHECK_INTERVAL}s")
     
-    while True:
+    while True
         check_hardware()
         run_healthcheck(URLS_TO_CHECK)
         time.sleep(CHECK_INTERVAL)
