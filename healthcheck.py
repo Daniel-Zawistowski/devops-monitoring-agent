@@ -3,8 +3,6 @@ import requests
 from datetime import datetime
 from system_monitor import send_discord_alert
 
-URLS_TO_CHECK = os.environ.get("URLS_TO_CHECK", "https://google.com,https://github.com").split(",")
-
 def run_healthcheck(urls: list):
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,4 +31,5 @@ def run_healthcheck(urls: list):
             send_discord_alert(error_msg)
 
 if __name__ == "__main__":
-    run_healthcheck(URLS_TO_CHECK)
+    test_urls = ["https://google.com", "https://github.com"]
+    run_healthcheck(test_urls)

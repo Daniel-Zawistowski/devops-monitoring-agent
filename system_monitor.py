@@ -10,6 +10,9 @@ DISK_LIMIT = float(os.environ.get("DISK_LIMIT", "80.0"))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
 
 def send_discord_alert(alert_message: str):
+    if not WEBHOOK_URL:
+        print(f"[WARNING] Webhook URL not configured. Cannot send alert: {alert_message}")
+        return
     payload = {
             "username": "DevOps-Agent",
             "content": alert_message
@@ -30,7 +33,7 @@ def evaluate_metric(metric_name: str, current_value: float, limit: float, tag: s
 
 def check_hardware():
     try:
-        total, used = shutil.disk_usage("/")
+        total, used, free = shutil.disk_usage("/")
         disk_usage = (used / total) * 100
 
         ram = psutil.virtual_memory()
