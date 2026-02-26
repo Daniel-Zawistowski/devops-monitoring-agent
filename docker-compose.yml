@@ -1,0 +1,7 @@
+version: '3.8'
+services:
+  monitor_agent:
+    build: .
+    environment:
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - CHECK_INTERVAL=60
